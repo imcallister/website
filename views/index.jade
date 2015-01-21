@@ -1,0 +1,146 @@
+extends layout
+
+block header
+  .home-header-view
+    .navbar.navbar-inverse.navbar-static-top(role='navigation')
+      .container
+        .navbar-header
+          button.navbar-toggle(type='button', data-toggle='collapse', data-target='.navbar-collapse')
+            span.sr-only Toggle navigation
+            span.icon-bar
+            span.icon-bar
+            span.icon-bar
+        .collapse.navbar-collapse
+          ul.nav.navbar-nav.navbar-right
+            li(class=(route == 'ipython' ? "active" : ""))
+              a(href='/ipython') iPython
+            li(class=(route == 'other' ? "active" : ""))
+              a(href='/other') Other
+        .nav-collapse
+    
+block content
+  
+  
+  script.
+
+    // Respect - adapted from mbostock's example at http://bl.ocks.org/mbostock/3231298
+    var $view = $('.home-header-view')
+    var width = $view.outerWidth();
+    var height = $view.outerHeight();
+
+    var colors = ["#00FF00", "limegreen", "green"];
+
+    var nodes = d3.range(200).map(function() { 
+      return {
+        radius: Math.random() * 12 + 4,
+        x: width / 2,
+        y: height / 2
+      }; 
+    });
+
+    var root = nodes[0];
+    root.radius = 0;
+    root.fixed = true;
+
+    var force = d3.layout.force()
+        .gravity(0.03)
+        .charge(function(d, i) { return i ? 0 : -5000; })
+        .nodes(nodes)
+        .size([width, height]);
+
+    force.start();
+
+    var svg = d3.select(".home-header-view").insert("svg", ":first-child")
+        .attr("width", width)
+        .attr("height", height);
+
+    svg.selectAll("circle")
+      .data(nodes.slice(1))
+      .enter().append("circle")
+      .attr("r", function(d) { return d.radius; })
+      .style("fill", function(d, i) { return colors[i % 3]; });
+
+    $view.on("mousemove", function(e) {
+      root.px = e.pageX;
+      root.py = e.pageY;
+      force.resume();
+    })
+
+    explode = function() {
+      root.px = width / 2;
+      root.py = height / 2;
+
+      nodes.forEach(function(o, i) {
+        o.x += (Math.random() - .5) * 300;
+        o.y += (Math.random() - .5) * 300;
+      });
+
+      force.start()
+    }
+
+    resize = function() {
+      width = $view.outerWidth();
+      height = $view.outerHeight();
+
+      svg.attr("width", width).attr("height", height);
+
+      force
+        .size([width, height])
+        .charge(function(d, i) { return i ? 0 : Math.max(-4500, -2.5 * width); })
+        .start();
+
+      explode();
+    };
+
+    var timer = null;
+    $view.mouseenter(function() { 
+      if(timer) {
+        clearTimeout(timer);
+      }
+    })
+
+    $view.mouseleave(function() {
+      timer = setTimeout(explode, 1500);
+    })
+
+    $view.mousedown(function() {
+      timer = setTimeout(explode, 250);
+    })
+
+    d3.select(window).on('resize', resize);
+
+    force.on("tick", function(e) {
+      var q = d3.geom.quadtree(nodes),
+          i = 0,
+          n = nodes.length;
+
+      while (++i < n) q.visit(collide(nodes[i]));
+
+      svg.selectAll("circle")
+          .attr("cx", function(d) { return d.x; })
+          .attr("cy", function(d) { return d.y; });
+    });
+
+    function collide(node) {
+      var r = node.radius + 16,
+          nx1 = node.x - r,
+          nx2 = node.x + r,
+          ny1 = node.y - r,
+          ny2 = node.y + r;
+      return function(quad, x1, y1, x2, y2) {
+        if (quad.point && (quad.point !== node)) {
+          var x = node.x - quad.point.x,
+              y = node.y - quad.point.y,
+              l = Math.sqrt(x * x + y * y),
+              r = node.radius + quad.point.radius;
+          if (l < r) {
+            l = (l - r) / l * .5;
+            node.x -= x *= l;
+            node.y -= y *= l;
+            quad.point.x += x;
+            quad.point.y += y;
+          }
+        }
+        return x1 > nx2 || x2 < nx1 || y1 > ny2 || y2 < ny1;
+      };
+    }
