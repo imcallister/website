@@ -12,10 +12,10 @@ block header
             span.icon-bar
         .collapse.navbar-collapse
           ul.nav.navbar-nav.navbar-right
-            li(class=(route == 'ipython' ? "active" : ""))
-              a(href='/ipython') iPython
+            li()
+              a(href='http://liv.mcallisternevins.com:8899/notebook') iPython
             li(class=(route == 'other' ? "active" : ""))
-              a(href='/other') Other
+              a(href='/') Other
         .nav-collapse
     
 block content
@@ -28,7 +28,7 @@ block content
     var width = $view.outerWidth();
     var height = $view.outerHeight();
 
-    var colors = ["#00FF00", "limegreen", "green"];
+    var colors = ["purple", "white", "yellow"];
 
     var nodes = d3.range(200).map(function() { 
       return {
